@@ -1,0 +1,37 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "fbnotify"
+version = "0.1.0"
+description = ""
+authors = ["Itzik <itzik1058@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-telegram-bot = "^20.3"
+selenium = "^4.10.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+poetry = "^1.5.1"
+black = "^23.3.0"
+ruff = "^0.0.274"
+mypy = "^1.4.0"
+pre-commit = "^3.3.3"
+
+[tool.poetry.scripts]
+fbnotify = "fbnotify.main:main"
+
+[tool.mypy]
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+disallow_untyped_defs = true
