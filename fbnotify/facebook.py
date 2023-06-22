@@ -42,10 +42,9 @@ class FacebookScraper:
 
         links = article.find_elements(By.CSS_SELECTOR, 'a[role="link"]')
         hrefs = map(lambda e: e.get_attribute("href"), links)
-        url = [href for href in hrefs if "posts" in href][0]
-        if url is None:
-            raise Exception()
 
+        # this can fail
+        url = [href for href in hrefs if "posts" in href][0]
         post_id = Path(urlparse(url).path).parts[2]
 
         post = article.find_element(

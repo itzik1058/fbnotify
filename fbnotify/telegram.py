@@ -13,6 +13,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_chat is None:
         return
     chat_id = update.effective_chat.id
+    if chat_id in CHATS:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="Already working",
+        )
+        return
     CHATS.add(chat_id)
     pages = PAGES.split(",")
     await context.bot.send_message(
@@ -41,7 +47,11 @@ async def fetch(context: ContextTypes.DEFAULT_TYPE) -> None:
     scraper = FacebookScraper()
     new: list[FacebookResult] = []
     for page in PAGES.split(","):
-        result = scraper.fetch_page_head(page)
+        try:
+            result = scraper.fetch_page_head(page)
+        except Exception as e:
+            logger.error(e)
+            continue
         if page not in POST_CACHE or POST_CACHE[page].id != result.id:
             new.append(result)
         POST_CACHE[page] = result
