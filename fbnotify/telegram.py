@@ -1,4 +1,6 @@
-from telegram import Update
+from typing import Iterable
+
+from telegram import InputMediaPhoto, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 from fbnotify.config import PAGES
@@ -7,6 +9,30 @@ from fbnotify.utils import logger
 
 POST_CACHE: dict[str, FacebookResult] = {}
 CHATS: set[int] = set()
+
+
+async def send_results(
+    chat_id: int,
+    context: ContextTypes.DEFAULT_TYPE,
+    results: Iterable[FacebookResult],
+) -> None:
+    for post in results:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"{post.url}\n{post.text}",
+        )
+        media: list[InputMediaPhoto] = [
+            InputMediaPhoto(
+                media=photo.source,
+                caption=photo.description,
+            )
+            for photo in post.photos
+        ]
+        if len(media) > 0:
+            await context.bot.send_media_group(
+                chat_id,
+                media,
+            )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -25,11 +51,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_id=chat_id,
         text=f"Chat {chat_id} will receive updates from {', '.join(pages)}.",
     )
-    for page, post in POST_CACHE.items():
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=f"[{page}] ({post.id}) {post.url}\n{post.text}",
-        )
+    await send_results(chat_id, context, POST_CACHE.values())
 
 
 async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,15 +78,19 @@ async def fetch(context: ContextTypes.DEFAULT_TYPE) -> None:
             new.append(result)
         POST_CACHE[page] = result
     for chat_id in CHATS:
-        for post in new:
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"[{post.id}] {post.url}\n{post.text}",
-            )
+        await send_results(chat_id, context, new)
 
 
 def run(token: str) -> None:
-    application = ApplicationBuilder().token(token).build()
+    application = (
+        ApplicationBuilder()
+        .token(token)
+        .pool_timeout(5)
+        .connect_timeout(20)
+        .read_timeout(30)
+        .write_timeout(30)
+        .build()
+    )
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("unsubscribe", unsubscribe))
@@ -73,6 +99,6 @@ def run(token: str) -> None:
         logger.critical("job queue is not available")
         return
 
-    application.job_queue.run_repeating(fetch, interval=600, first=60)
+    application.job_queue.run_repeating(fetch, interval=600, first=10)
 
     application.run_polling()
