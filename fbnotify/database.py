@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Generator
 
@@ -17,6 +18,7 @@ engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@contextmanager
 def get_orm_session() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
@@ -37,7 +39,7 @@ class TelegramChat(Base):
     __tablename__ = "telegram_chat"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    subscriptions: Mapped[list["FacebookPageSubscription"]] = relationship(
+    subscriptions: Mapped[list["TelegramSubscription"]] = relationship(
         back_populates="chat"
     )
 
@@ -48,13 +50,16 @@ class FacebookPage(Base):
     id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
     posts: Mapped[list["FacebookPost"]] = relationship(back_populates="page")
+    subscriptions: Mapped[list["TelegramSubscription"]] = relationship(
+        back_populates="page"
+    )
 
 
 class FacebookPost(Base):
     __tablename__ = "facebook_post"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    page_id: Mapped[int] = mapped_column(
+    page_id: Mapped[str] = mapped_column(
         ForeignKey(
             "facebook_page.id",
             ondelete="CASCADE",
@@ -64,7 +69,7 @@ class FacebookPost(Base):
     text: Mapped[str]
     page: Mapped[FacebookPage] = relationship(back_populates="posts")
     comments: Mapped[list["FacebookComment"]] = relationship(back_populates="post")
-    photos: Mapped[list["FacebookComment"]] = relationship(back_populates="post")
+    photos: Mapped[list["FacebookPhoto"]] = relationship(back_populates="post")
 
 
 class FacebookComment(Base):
@@ -96,21 +101,22 @@ class FacebookPhoto(Base):
     post: Mapped[FacebookPost] = relationship(back_populates="photos")
 
 
-class FacebookPageSubscription(Base):
-    __tablename__ = "facebook_page_subscription"
+class TelegramSubscription(Base):
+    __tablename__ = "telegram_subscription"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     chat_id: Mapped[int] = mapped_column(
         ForeignKey(
             "telegram_chat.id",
             ondelete="CASCADE",
-        )
+        ),
+        primary_key=True,
     )
-    post_id: Mapped[int] = mapped_column(
+    page_id: Mapped[str] = mapped_column(
         ForeignKey(
             "facebook_page.id",
             ondelete="CASCADE",
-        )
+        ),
+        primary_key=True,
     )
     chat: Mapped[TelegramChat] = relationship(back_populates="subscriptions")
-    post: Mapped[FacebookPost] = relationship()
+    page: Mapped[FacebookPage] = relationship(back_populates="subscriptions")

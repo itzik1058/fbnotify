@@ -1,0 +1,6 @@
+class ChatNotFoundException(LookupError):
+    ...
+
+
+class SubscriptionNotFoundException(LookupError):
+    ...

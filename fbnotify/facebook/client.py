@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,26 +10,13 @@ from selenium.webdriver.support.expected_conditions import (
 )
 from selenium.webdriver.support.wait import WebDriverWait
 
+from fbnotify.database import FacebookPost
+from fbnotify.facebook.exceptions import PostAlreadyExists
+from fbnotify.facebook.service import add_comment, add_photo, add_post, get_post
 from fbnotify.utils import logger
 
 
-@dataclass()
-class FacebookPhoto:
-    source: str
-    description: str
-
-
-@dataclass()
-class FacebookResult:
-    page: str
-    id: str
-    url: str
-    text: str
-    comments: tuple[str, ...]
-    photos: tuple[FacebookPhoto, ...]
-
-
-class FacebookScraper:
+class FacebookClient:
     def __init__(self) -> None:
         options = ChromeOptions()
         options.add_argument("--headless")
@@ -42,7 +28,7 @@ class FacebookScraper:
             logger.critical(e)
         self.web_driver_wait = WebDriverWait(self.webdriver, 5)
 
-    def fetch_page_head(self, page: str) -> FacebookResult:
+    def fetch_page_head(self, page: str) -> FacebookPost:
         page_url = f"https://www.facebook.com/{page}"
         self.webdriver.get(page_url)
 
@@ -63,7 +49,9 @@ class FacebookScraper:
             for link in links
             if "posts/" in link.get_attribute("href")
         ][0]
-        post_id = Path(urlparse(post_url).path).parts[4]
+        post_id = int(Path(urlparse(post_url).path).parts[4])
+        if get_post(post_id) is not None:
+            raise PostAlreadyExists()
 
         photos = []
         for link in links:
@@ -73,11 +61,12 @@ class FacebookScraper:
             description = link.get_attribute("aria-label")
             if description is None:
                 description = image.get_attribute("alt")
-            photo = FacebookPhoto(
-                source=image.get_attribute("src"),
-                description=description,
+            photos.append(
+                {
+                    "url": image.get_attribute("src"),
+                    "description": description,
+                }
             )
-            photos.append(photo)
 
         try:
             post = article.find_element(
@@ -90,11 +79,9 @@ class FacebookScraper:
             text = article.text
             comments = []
         logger.info(f"fetch successful for {post_id} at {page_url}")
-        return FacebookResult(
-            page=page,
-            id=post_id,
-            url=post_url,
-            text=text,
-            comments=tuple(comment.text for comment in comments),
-            photos=tuple(photos),
-        )
+        post = add_post(post_id, page, post_url, text)
+        for comment in comments:
+            add_comment(post_id, comment.text)
+        for photo in photos:
+            add_photo(post_id, photo["url"], photo["description"])
+        return post
