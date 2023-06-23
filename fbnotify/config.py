@@ -10,5 +10,6 @@ try:
 except ImportError:
     logger.debug("python-dotenv not installed")
 
+DATABASE_URL = "sqlite:///fbnotify.db"
 TELEGRAM_BOT_TOKEN = getenv("TELEGRAM_BOT_TOKEN", "")
 PAGES = getenv("PAGES", "")
