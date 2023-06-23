@@ -32,6 +32,8 @@ python-dotenv = "^1.0.0"
 fbnotify = "fbnotify.main:main"
 
 [tool.mypy]
+exclude = "alembic"
+
 warn_redundant_casts = true
 warn_unused_ignores = true
 disallow_any_generics = true
