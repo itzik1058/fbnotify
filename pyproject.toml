@@ -10,6 +10,9 @@ authors = ["Itzik <itzik1058@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
+[tool.poetry.scripts]
+fbnotify = "fbnotify.main:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 python-telegram-bot = { extras = ["job-queue"], version = "^20.3" }
@@ -27,9 +30,6 @@ ruff = "^0.0.274"
 mypy = "^1.4.0"
 pre-commit = "^3.3.3"
 python-dotenv = "^1.0.0"
-
-[tool.poetry.scripts]
-fbnotify = "fbnotify.main:main"
 
 [tool.mypy]
 exclude = "alembic"

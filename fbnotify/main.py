@@ -1,5 +1,5 @@
 from fbnotify.config import TELEGRAM_BOT_TOKEN
-from fbnotify.telegram.bot import run
+from fbnotify.telegram.client import run
 from fbnotify.utils import logger
 
 
